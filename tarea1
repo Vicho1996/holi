@@ -1,0 +1,66 @@
+% Parámetros globales
+global k10 k20 k30 E1_R E2_R E3_R R V rho CP CPC hc Ac mc T0 TC CA0 q0 Q;
+
+k10 = 1.287e12; % h^-1
+k20 = k10;      % h^-1
+k30 = 9.043e9;  % L/(mol*A*h)
+E1_R = -9758.3; % K
+E2_R = -9758.3; % K
+E3_R = -8560;   % K
+R = 8.314;      % J/(mol*K)
+V = 10;         % L
+rho = 0.9342;   % kg/L
+CP = 3.01;      % kJ/(kg*K)
+CPC = 2;        % kJ/(kg*K)
+hc = 4032;      % kJ/(h*K*m^2)
+Ac = 0.215;     % m^2
+mc = 5;         % kg
+T0 = 377.9;     % K
+TC = 372.18;    % K
+CA0 = 5.1;      % mol/L
+q0 = 80;        % L/h
+Q = -1113.5;    % kJ/h
+
+% Condiciones iniciales
+CA = CA0;
+CB = 0;
+CC = 0;
+CD = 0;
+T = T0;
+
+% Sistema de ecuaciones diferenciales
+function dYdt = reactor(t, Y)
+    global k10 k20 k30 E1_R E2_R E3_R R V rho CP CPC hc Ac mc T0 TC CA0 q0 Q;
+    
+    CA = Y(1);
+    CB = Y(2);
+    CC = Y(3);
+    CD = Y(4);
+    T = Y(5);
+    
+    k1 = k10 * exp(E1_R / (R * T));
+    k2 = k20 * exp(E2_R / (R * T));
+    k3 = k30 * exp(E3_R / (R * T));
+    
+    dCAdt = (q0 / V) * (CA0 - CA) - k1 * CA - 2 * k3 * CA^2;
+    dCBdt = k1 * CA - k2 * CB;
+    dCCdt = k2 * CB;
+    dCDdt = k3 * CA^2;
+    dTdt = (q0 / (V * rho * CP)) * (T0 - T) + (Q / (mc * CPC)) + (hc * Ac / (mc * CPC)) * (TC - T);
+    
+    dYdt = [dCAdt; dCBdt; dCCdt; dCDdt; dTdt];
+end
+
+% Tiempo de integración
+tspan = [0 10]; % horas
+
+% Resolución del sistema ODE
+[t, Y] = ode45(@reactor, tspan, [CA; CB; CC; CD; T]);
+
+% Graficar resultados
+figure;
+plot(t, Y(:,1), 'b', t, Y(:,2), 'r', t, Y(:,3), 'g', t, Y(:,4), 'k', t, Y(:,5), 'm');
+legend('CA', 'CB', 'CC', 'CD', 'T');
+xlabel('Tiempo (h)');
+ylabel('Concentraciones (mol/L) y Temperatura (K)');
+title('Dinámica del Reactor');
